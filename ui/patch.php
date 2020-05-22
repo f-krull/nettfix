@@ -38,17 +38,18 @@ function apply_patch_file(string $patch_fn) {
     die(sprintf("Error unknown patch type %s", $patch->op->type));
   }
 
-  $sql = "SELECT update_form_data(:form_id, :submission_id, :external_question_id, :value);";
+  $sql = "SELECT update_form_data(:form_id, :submission_id, :external_question_id, :value_from, :value_to);";
   $stmt = $conn->prepare($sql);
   if (!$stmt) {
     echo "Error updating record:\n";
     print_r($stmt->errorInfo());
     die(sprintf("Error updating record form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id));
   }
-  $stmt->bindParam(':form_id',              $patch->form_id,       PDO::PARAM_INT);
-  $stmt->bindParam(':submission_id',        $patch->submission_id, PDO::PARAM_STR);
-  $stmt->bindParam(':external_question_id', $patch->op->column_id, PDO::PARAM_STR);
-  $stmt->bindParam(':value',    json_encode($patch->op->value),    PDO::PARAM_STR);
+  $stmt->bindParam(':form_id',                $patch->form_id,        PDO::PARAM_INT);
+  $stmt->bindParam(':submission_id',          $patch->submission_id,  PDO::PARAM_STR);
+  $stmt->bindParam(':external_question_id',   $patch->op->column_id,  PDO::PARAM_STR);
+  $stmt->bindParam(':value_from', json_encode($patch->op->value_from), PDO::PARAM_STR);
+  $stmt->bindParam(':value_to',   json_encode($patch->op->value_to),   PDO::PARAM_STR);
   if ( $stmt->execute()) {
     "Record updated successfully\n";
   } else {

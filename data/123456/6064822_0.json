@@ -5,7 +5,8 @@
   "op": {
     "type": "update",
     "column_id": "textquestion",
-    "value": "patched"
+    "value_from": "flo",
+    "value_to": "patched"
   },
   "comment": "rocks"
 }

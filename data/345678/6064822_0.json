@@ -5,7 +5,8 @@
   "op": {
     "type": "update",
     "column_id": "textquestion",
-    "value": "Clark Kent patch id=0"
+    "value_from": "flo",
+    "value_to": "patched id=0"
   },
   "comment": "rocks"
 }
