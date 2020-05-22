@@ -7,13 +7,15 @@ $dbport = "3732";
 
 $patchdir = dirname(__FILE__) . "/../data/";
 
+/*----------------------------------------------------------------------------*/
+
 function apply_patch_file(string $patch_fn) {
-  echo "$patch_fn\n";
+  echo "$patch_fn: ";
   $f = fopen($patch_fn, "r") or die("Unable to open file!");
   $patch = json_decode(fread($f,filesize($patch_fn)));
   fclose($f);
 
-  echo sprintf("patching form_id=%d submission_id=%d\n", $patch->form_id, $patch->submission_id);
+  echo sprintf("form_id=%d submission_id=%d\n", $patch->form_id, $patch->submission_id);
 
   // Create connection
   global $servername;
@@ -32,12 +34,16 @@ function apply_patch_file(string $patch_fn) {
     die("Connection failed: " . $conn->connect_error);
   }
 
+  if ($patch->op->type != "update") {
+    die(sprintf("Error unknown patch type %s", $patch->op->type));
+  }
+
   $sql = "SELECT update_form_data(:form_id, :submission_id, :external_question_id, :value);";
   $stmt = $conn->prepare($sql);
   if (!$stmt) {
     echo "Error updating record:\n";
     print_r($stmt->errorInfo());
-    exit(1);
+    die(sprintf("Error updating record form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id));
   }
   $stmt->bindParam(':form_id',              $patch->form_id,       PDO::PARAM_INT);
   $stmt->bindParam(':submission_id',        $patch->submission_id, PDO::PARAM_STR);
@@ -48,11 +54,13 @@ function apply_patch_file(string $patch_fn) {
   } else {
     echo "Error updating record:\n";
     print_r($stmt->errorInfo());
-    exit(1);
+    die(sprintf("Error updating record form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id));
   }
 
   $conn = null;
 }
+
+/*----------------------------------------------------------------------------*/
 
 foreach (glob($patchdir . "/*/*.json") as $filename) {
   apply_patch_file($filename);
