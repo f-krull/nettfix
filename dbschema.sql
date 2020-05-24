@@ -14,7 +14,7 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nfHasExternalAnswerOptionId(p_form_id integer, p_submission_id int, p_question_id text)
+CREATE OR REPLACE FUNCTION nf_has_externalansweroptionid(p_form_id int, p_submission_id int, p_question_id text)
 RETURNS bool as $$
 declare has_ext bool := false;
 begin
@@ -65,7 +65,7 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_getupdated_answerids_json(form_id int, submission_id int, question_id text, value_to jsonb)
+CREATE OR REPLACE FUNCTION nf_get_updated_answerids_json(form_id int, submission_id int, question_id text, value_to jsonb)
 RETURNS jsonb as $$
 declare 
   in_form_id int := form_id;
@@ -74,22 +74,26 @@ declare
 begin 
   -- get unpacked answer-option rows
   with aopts as (
-    select jsonb_array_elements(jsonb_extract_path(form_data, 'answersAsMap','1904646','answerOptions')) as arr
+    select jsonb_extract_path(form_data, 'answersAsMap',question_id,'answerOptions') as c
       from submissions s where s.form_id = in_form_id and id = in_submission_id
-  )
-  select jsonb_build_array(aopts.arr) from aopts
+  ),
+  rep as (select value_to as c),
+  -- add index
+  aopts_idx as (select value, ordinality from aopts, jsonb_array_elements(aopts.c) with ordinality),
+  value_to_idx as (select value, ordinality from rep, jsonb_array_elements(rep.c) with ordinality),
+  -- patch answer options data
+  aopts_patched as (select to_json(array_agg(jsonb_set(aopts_idx.value, '{externalAnswerOptionId}', value_to_idx.value, false))) as c from aopts_idx inner join value_to_idx on aopts_idx.ordinality = value_to_idx.ordinality)
+  -- pack rows array 
+  select jsonb_build_array(aopts_patched.c) from aopts_patched
+    into updated_form_json;
+ -- replace in whole json
+  select jsonb_set(form_data, array['answersAsMap',question_id,'answerOptions'], updated_form_json, false)
+    from submissions s where s.form_id = in_form_id and id = in_submission_id
   into updated_form_json;
-  select value_to  into  updated_form_json;
-  -- patch data
-  -- pack array 
-  -- replace in whole json
   return updated_form_json;
 end;
 $$ 
 LANGUAGE plpgsql;
-
-
-
 
 -- set answer
 
