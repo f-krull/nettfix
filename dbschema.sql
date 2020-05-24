@@ -47,14 +47,14 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_isequal_answerids(answerids jsonb, patch jsonb)
+CREATE OR REPLACE FUNCTION nf_isequal_answerids(answerids jsonb, value_from jsonb)
 RETURNS bool as $$
 declare 
   is_same bool;
 begin
   with 
     values_present  as ( select value from jsonb_array_elements(answerids)),
-    values_expected as ( select value from jsonb_array_elements(patch->'value_from')),
+    values_expected as ( select value from jsonb_array_elements(value_from)),
     values_diff as (
       (select value from values_present except (select value from values_expected))
       union all 
@@ -157,7 +157,7 @@ begin
   -- check question id
   if question_id is null THEN
     RAISE EXCEPTION 'nf_get_questionid(%,"%") returned NULL',form_id, patch->>'column_id'
-      USING HINT = 'Check spelling of the external question ID (column_id)';
+      USING HINT = 'Revise patch and check spelling of the external question ID (column_id)';
   END IF;
   -- check question type
   if (nf_has_externalansweroptionid(form_id, submission_id, question_id)) then
@@ -196,13 +196,13 @@ $$
 LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
---
-select nf_apply_patch(123456, 6040698, '{
-  "type": "update",
-  "column_id": "textquestion",
-  "value_from": "This is a text answer",
-  "value_to": "This is a patched text answer"
-}');
+
+-- select nf_apply_patch(123456, 6040698, '{
+--   "type": "update",
+--   "column_id": "textquestion",
+--   "value_from": "This is a text answer",
+--   "value_to": "This is a patched text answer"
+-- }');
 
 
 
