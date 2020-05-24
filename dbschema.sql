@@ -76,17 +76,18 @@ declare
   updated_form_json jsonb;
 begin 
   -- get unpacked answer-option rows
-  with aopts as (
-    select jsonb_extract_path(form_data, 'answersAsMap',question_id,'answerOptions') as c
-      from submissions s where s.form_id = in_form_id and id = in_submission_id
-  ),
-  rep as (select value_to as c),
-  -- add index
-  aopts_idx as (select value, ordinality from aopts, jsonb_array_elements(aopts.c) with ordinality),
-  value_to_idx as (select value, ordinality from rep, jsonb_array_elements(rep.c) with ordinality),
-  -- patch answer options data
-  aopts_patched as (select to_json(array_agg(jsonb_set(aopts_idx.value, '{externalAnswerOptionId}', value_to_idx.value, false))) as c from aopts_idx inner join value_to_idx on aopts_idx.ordinality = value_to_idx.ordinality)
-  -- pack rows array 
+  with 
+    aopts as (
+      select jsonb_extract_path(form_data, 'answersAsMap',question_id,'answerOptions') as c
+        from submissions s where s.form_id = in_form_id and id = in_submission_id
+    ),
+    rep as (select value_to as c),
+    -- add index
+    aopts_idx as (select value, ordinality from aopts, jsonb_array_elements(aopts.c) with ordinality),
+    value_to_idx as (select value, ordinality from rep, jsonb_array_elements(rep.c) with ordinality),
+    -- patch answer options data
+    aopts_patched as (select to_json(array_agg(jsonb_set(aopts_idx.value, '{externalAnswerOptionId}', value_to_idx.value, false))) as c from aopts_idx inner join value_to_idx on aopts_idx.ordinality = value_to_idx.ordinality)
+    -- pack rows array 
   select aopts_patched.c from aopts_patched
     into updated_form_json;
   -- replace in whole json
@@ -112,23 +113,37 @@ begin
   select to_jsonb(array_agg(arows.c)) from ( select nf_get_answerids_jsonrows(in_form_id, in_submission_id, question_id) as c) as arows into answerids;
   -- check if old answerids match 
   if not nf_isequal_answerids(answerids, patch->'value_from') then
-    RAISE exception 'old externalAnswerOptionId ("%") do not match values in patch ("%")', answerids, patch->'value_from'  USING HINT = 'Revise patch and specify correct value_from';
+    RAISE exception 'old externalAnswerOptionId ("%") do not match values in patch ("%")', answerids, patch->'value_from'  
+      USING HINT = 'Revise patch and specify correct value_from';
   end if;
   select nf_get_updated_form_json_answerids(in_form_id, in_submission_id, question_id, patch->'value_to') into form_json;
-  update submissions s set form_data = form_json where s.form_id = in_form_id and s.id  = in_submission_id;
+  update submissions s set form_data = form_json where s.form_id = in_form_id and s.id = in_submission_id;
 end
 $$ 
 LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nfApplyPatchUpdateText(form_id int, submission_id int, patch jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update_text(form_id int, submission_id int, question_id text, patch jsonb)
 RETURNS VOID as $$
 DECLARE 
+  in_form_id int := form_id;
+  in_submission_id int := submission_id;
   value_from  text := patch->>'value_from';
   value_to    text := patch->>'value_to';
-  question_id text := nf_get_questionid(form_id, patch->>'column_id');
+  value_curr  text;
 begin
+  -- check current value
+  select form_data #>> ('{answersAsMap,'||question_id||',unfilteredTextAnswer}')::text[] from submissions s where s.form_id = in_form_id and s.id = in_submission_id
+  into value_curr;
+  if value_from != value_curr then
+    RAISE exception 'old externalAnswerOptionId ("%") do not match values in patch ("%")', value_curr, value_from  
+      USING HINT = 'Revise patch and specify correct value_from';
+  end if;
+  -- apply update
+  update submissions s 
+    set form_data = jsonb_set(form_data, ('{answersAsMap,'||question_id||',unfilteredTextAnswer}')::text[], to_jsonb(value_to), false)
+    where s.form_id = in_form_id and s.id = in_submission_id;
 end
 $$ 
 LANGUAGE plpgsql;
@@ -148,7 +163,7 @@ begin
   if (nf_has_externalansweroptionid(form_id, submission_id, question_id)) then
     perform nf_apply_update_answerids(form_id, submission_id, question_id, patch);
   else
-  	RAISE exception 'supported column type (column %)', patch->>'column_id';
+  	perform nf_apply_update_text(form_id, submission_id, question_id, patch);
   end if;
   
 end
@@ -166,13 +181,15 @@ DECLARE
   has_submission bool := (select count(*) > 0 from submissions s2 where s2.form_id = in_form_id and s2.id = in_submission_id);
 begin
   if not has_submission THEN
-    RAISE EXCEPTION 'form_id or (form_id, submission_id) not found' USING HINT = 'Revise patch and specify correct form ID and submission ID';
+    RAISE EXCEPTION 'form_id or (form_id, submission_id) not found' 
+      USING HINT = 'Revise patch and specify correct form ID and submission ID';
   END IF;
   case 
   when patch_type = 'update' then 
 	  perform nf_apply_update(in_form_id, in_submission_id, patch);
   else
-    RAISE EXCEPTION 'unexpected patch type (%)', patch_type USING HINT = 'Revise patch and specify the correct patch type';
+    RAISE EXCEPTION 'unexpected patch type (%)', patch_type 
+      USING HINT = 'Revise patch and specify the correct patch type';
   end case;
 end
 $$ 
@@ -180,12 +197,12 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 --
---select nf_apply_patch(123456, 6040698, '{
---  "type": "update",
---  "column_id": "textquestion",
---  "value_from": "This is a text answer",
---  "value_to": "This is a patched text answer"
---}');
+select nf_apply_patch(123456, 6040698, '{
+  "type": "update",
+  "column_id": "textquestion",
+  "value_from": "This is a text answer",
+  "value_to": "This is a patched text answer"
+}');
 
 
 
@@ -199,4 +216,4 @@ LANGUAGE plpgsql;
 
 -- select form_data #> '{answersAsMap,1904646,answerOptions}' from submissions s where s.form_id = 123456 and id = 6040698;
 
-select * from nf_get_updated_form_json_answerids(123456, 6053582, nf_get_questionid(123456, 'checkboxquestion'), '[ "asd", "dsff"]');
+--select * from nf_get_updated_form_json_answerids(123456, 6053582, nf_get_questionid(123456, 'checkboxquestion'), '[ "asd", "dsff"]');
