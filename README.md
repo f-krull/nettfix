@@ -3,7 +3,8 @@
 
 ## TODO:
 
-  * include old value in patch file
+  * use patch id n json  - check if it's next in line when applying
+  * get_patch_template(form_id, submission_id, type)
 
 Workflow 
   * start by external trigger
@@ -14,5 +15,4 @@ Workflow
   * get all form info (form_id and last patch timestamp)
   * check for new patch files (newer than last timestamp)
   * if found, add file to db and and apply
-
 
