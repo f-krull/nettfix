@@ -101,7 +101,7 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_update_answerids(form_id int, submission_id int, question_id text, action jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update_answerids(form_id int, submission_id int, question_id text, action jsonb, dry_run bool)
 RETURNS VOID as $$
 DECLARE 
   in_form_id int := form_id;
@@ -117,14 +117,16 @@ begin
       USING HINT = 'Revise patch and specify correct value_from';
   end if;
   select nf_get_updated_form_json_answerids(in_form_id, in_submission_id, question_id, action->'value_to') into form_json;
-  update submissions s set form_data = form_json where s.form_id = in_form_id and s.id = in_submission_id;
+  if not dry_run then
+    update submissions s set form_data = form_json where s.form_id = in_form_id and s.id = in_submission_id;
+  end if;
 end
 $$ 
 LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_update_text(form_id int, submission_id int, question_id text, action jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update_text(form_id int, submission_id int, question_id text, action jsonb, dry_run bool)
 RETURNS VOID as $$
 DECLARE 
   in_form_id int := form_id;
@@ -141,15 +143,17 @@ begin
       USING HINT = 'Revise patch and specify correct value_from';
   end if;
   -- apply update
-  update submissions s 
-    set form_data = jsonb_set(form_data, ('{answersAsMap,'||question_id||',unfilteredTextAnswer}')::text[], to_jsonb(value_to), false)
-    where s.form_id = in_form_id and s.id = in_submission_id;
+  if not dry_run then
+    update submissions s 
+      set form_data = jsonb_set(form_data, ('{answersAsMap,'||question_id||',unfilteredTextAnswer}')::text[], to_jsonb(value_to), false)
+      where s.form_id = in_form_id and s.id = in_submission_id;
+  end if;
 end
 $$ 
 LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_update(form_id int, submission_id int, action jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update(form_id int, submission_id int, action jsonb, dry_run bool)
 RETURNS VOID as $$
 DECLARE 
   question_id text := nf_get_questionid(form_id, action->>'column_id');
@@ -161,9 +165,9 @@ begin
   END IF;
   -- check question type
   if (nf_has_externalansweroptionid(form_id, submission_id, question_id)) then
-    perform nf_apply_update_answerids(form_id, submission_id, question_id, action);
+    perform nf_apply_update_answerids(form_id, submission_id, question_id, action, dry_run);
   else
-  	perform nf_apply_update_text(form_id, submission_id, question_id, action);
+  	perform nf_apply_update_text(form_id, submission_id, question_id, action, dry_run);
   end if;
   
 end
@@ -172,7 +176,7 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_operation(form_id int, submission_id int, action jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_operation(form_id int, submission_id int, action jsonb, dry_run bool)
 RETURNS VOID as $$
 DECLARE 
   in_form_id int := form_id;
@@ -186,7 +190,7 @@ begin
   END IF;
   case 
   when action_type = 'update' then 
-	  perform nf_apply_update(in_form_id, in_submission_id, action);
+	  perform nf_apply_update(in_form_id, in_submission_id, action, dry_run);
   else
     RAISE EXCEPTION 'unexpected action type (%)', action_type 
       USING HINT = 'Revise patch and specify the correct action type';
@@ -198,14 +202,14 @@ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 
-CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb, dry_run bool)
+CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb, dry_run bool default false)
 RETURNS VOID as $$
 DECLARE
   form_id int       := patch->> 'form_id';
   submission_id int := patch->> 'submission_id';
   action jsonb      := patch-> 'action';
 begin
-  perform nf_apply_operation(form_id, submission_id, action);
+  perform nf_apply_operation(form_id, submission_id, action, dry_run);
 end
 $$ 
 LANGUAGE plpgsql;
