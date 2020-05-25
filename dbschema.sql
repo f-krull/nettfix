@@ -101,22 +101,22 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_update_answerids(form_id int, submission_id int, question_id text, patch jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update_answerids(form_id int, submission_id int, question_id text, action jsonb)
 RETURNS VOID as $$
 DECLARE 
   in_form_id int := form_id;
   in_submission_id int := submission_id;
-  question_id text := nf_get_questionid(form_id, patch->>'column_id');
+  question_id text := nf_get_questionid(form_id, action->>'column_id');
   answerids jsonb;
   form_json jsonb;
 begin
   select to_jsonb(array_agg(arows.c)) from ( select nf_get_answerids_jsonrows(in_form_id, in_submission_id, question_id) as c) as arows into answerids;
   -- check if old answerids match 
-  if not nf_isequal_answerids(answerids, patch->'value_from') then
-    RAISE exception 'old externalAnswerOptionId ("%") do not match values in patch ("%")', answerids, patch->'value_from'  
+  if not nf_isequal_answerids(answerids, action->'value_from') then
+    RAISE exception 'old externalAnswerOptionId ("%") do not match values in patch ("%")', answerids, action->'value_from'  
       USING HINT = 'Revise patch and specify correct value_from';
   end if;
-  select nf_get_updated_form_json_answerids(in_form_id, in_submission_id, question_id, patch->'value_to') into form_json;
+  select nf_get_updated_form_json_answerids(in_form_id, in_submission_id, question_id, action->'value_to') into form_json;
   update submissions s set form_data = form_json where s.form_id = in_form_id and s.id = in_submission_id;
 end
 $$ 
@@ -124,13 +124,13 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_update_text(form_id int, submission_id int, question_id text, patch jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update_text(form_id int, submission_id int, question_id text, action jsonb)
 RETURNS VOID as $$
 DECLARE 
   in_form_id int := form_id;
   in_submission_id int := submission_id;
-  value_from  text := patch->>'value_from';
-  value_to    text := patch->>'value_to';
+  value_from  text := action->>'value_from';
+  value_to    text := action->>'value_to';
   value_curr  text;
 begin
   -- check current value
@@ -181,7 +181,7 @@ DECLARE
   has_submission bool := (select count(*) > 0 from submissions s2 where s2.form_id = in_form_id and s2.id = in_submission_id);
 begin
   if not has_submission THEN
-    RAISE EXCEPTION 'form_id or (form_id, submission_id) not found' 
+    RAISE EXCEPTION 'form_id (%) or form_id with submission_id (%) not found', in_form_id, in_submission_id
       USING HINT = 'Revise patch and specify correct form ID and submission ID';
   END IF;
   case 
@@ -198,12 +198,14 @@ LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
 
-CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb, dry_run bool)
 RETURNS VOID as $$
-DECLARE 
- 
+DECLARE
+  form_id int       := patch->> 'form_id';
+  submission_id int := patch->> 'submission_id';
+  action jsonb      := patch-> 'action';
 begin
-  
+  perform nf_apply_operation(form_id, submission_id, action);
 end
 $$ 
 LANGUAGE plpgsql;
