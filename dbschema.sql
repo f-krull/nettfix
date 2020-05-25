@@ -244,7 +244,7 @@ LANGUAGE plpgsql;
 
 
 
-create table if not exists patches (
+create table if not exists nf_patches (
   form_id        integer
   ,submission_id integer
   ,id            integer
@@ -253,5 +253,5 @@ create table if not exists patches (
   ,author        text
   ,comment       text
   ,PRIMARY KEY (form_id, submission_id, id)
-  ,FOREIGN KEY (form_id, submission_id) REFERENCES submissions(form_id, id)
+  ,FOREIGN KEY (form_id) REFERENCES forms(id)
 )
