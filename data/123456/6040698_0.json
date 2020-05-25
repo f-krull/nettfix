@@ -2,7 +2,7 @@
   "form_id": 123456,
   "submission_id": 6040698,
   "id": 0,
-  "operation": {
+  "action": {
     "type": "update",
     "column_id": "textquestion",
     "value_from": "This is a text answer",

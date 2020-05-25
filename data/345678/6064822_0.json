@@ -2,7 +2,7 @@
   "form_id": 345678,
   "submission_id": 6064822,
   "id": 0,
-  "operation": {
+  "action": {
     "type": "update",
     "column_id": "textquestion",
     "value_from": "flo",

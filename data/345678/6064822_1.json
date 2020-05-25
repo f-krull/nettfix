@@ -2,7 +2,7 @@
   "form_id": 345678,
   "submission_id": 6064822,
   "id": 1,
-  "operation": {
+  "action": {
     "type": "update",
     "column_id": "textquestion",
     "value_from": "patched id=0",

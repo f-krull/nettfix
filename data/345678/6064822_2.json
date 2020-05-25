@@ -2,7 +2,7 @@
   "form_id": 345678,
   "submission_id": 6277792,
   "id": 2,
-  "operation": {
+  "action": {
     "type": "update",
     "column_id": "matrow2",
     "value_from": ["matcol2", "matcol1"],

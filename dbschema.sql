@@ -149,21 +149,21 @@ $$
 LANGUAGE plpgsql;
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_update(form_id int, submission_id int, patch jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_update(form_id int, submission_id int, action jsonb)
 RETURNS VOID as $$
 DECLARE 
-  question_id text := nf_get_questionid(form_id, patch->>'column_id');
+  question_id text := nf_get_questionid(form_id, action->>'column_id');
 begin
   -- check question id
   if question_id is null THEN
-    RAISE EXCEPTION 'nf_get_questionid(%,"%") returned NULL',form_id, patch->>'column_id'
+    RAISE EXCEPTION 'nf_get_questionid(%,"%") returned NULL',form_id, action->>'column_id'
       USING HINT = 'Revise patch and check spelling of the external question ID (column_id)';
   END IF;
   -- check question type
   if (nf_has_externalansweroptionid(form_id, submission_id, question_id)) then
-    perform nf_apply_update_answerids(form_id, submission_id, question_id, patch);
+    perform nf_apply_update_answerids(form_id, submission_id, question_id, action);
   else
-  	perform nf_apply_update_text(form_id, submission_id, question_id, patch);
+  	perform nf_apply_update_text(form_id, submission_id, question_id, action);
   end if;
   
 end
@@ -172,12 +172,12 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION nf_apply_patch(form_id int, submission_id int, patch jsonb)
+CREATE OR REPLACE FUNCTION nf_apply_operation(form_id int, submission_id int, action jsonb)
 RETURNS VOID as $$
 DECLARE 
   in_form_id int := form_id;
   in_submission_id int := submission_id;
-  patch_type text := patch->>'type';
+  action_type text := action->>'type';
   has_submission bool := (select count(*) > 0 from submissions s2 where s2.form_id = in_form_id and s2.id = in_submission_id);
 begin
   if not has_submission THEN
@@ -185,11 +185,11 @@ begin
       USING HINT = 'Revise patch and specify correct form ID and submission ID';
   END IF;
   case 
-  when patch_type = 'update' then 
-	  perform nf_apply_update(in_form_id, in_submission_id, patch);
+  when action_type = 'update' then 
+	  perform nf_apply_update(in_form_id, in_submission_id, action);
   else
-    RAISE EXCEPTION 'unexpected patch type (%)', patch_type 
-      USING HINT = 'Revise patch and specify the correct patch type';
+    RAISE EXCEPTION 'unexpected action type (%)', action_type 
+      USING HINT = 'Revise patch and specify the correct action type';
   end case;
 end
 $$ 
@@ -197,23 +197,13 @@ LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
 
--- select nf_apply_patch(123456, 6040698, '{
---   "type": "update",
---   "column_id": "textquestion",
---   "value_from": "This is a text answer",
---   "value_to": "This is a patched text answer"
--- }');
 
-
-
---select nfHasExternalAnswerOptionId(123456, 6040698, '1904644');
---select nfHasExternalAnswerOptionId(123456, 6040698, '1904646');
-
--- select form_data #> '{answersAsMap,1904646,answerOptions,0,externalAnswerOptionId}' is not null from submissions s where s.form_id = 123456 and id = 6040698;
--- select jsonb_extract_path(jsonb_array_elements(jsonb_extract_path(form_data, 'answersAsMap','1904646','answerOptions')),'externalAnswerOptionId') from submissions s where s.form_id = 123456 and id = 6040698;
-
--- select * from nf_get_answerids_json(123456, 6053582, nf_get_questionid(123456, 'checkboxquestion'));
-
--- select form_data #> '{answersAsMap,1904646,answerOptions}' from submissions s where s.form_id = 123456 and id = 6040698;
-
---select * from nf_get_updated_form_json_answerids(123456, 6053582, nf_get_questionid(123456, 'checkboxquestion'), '[ "asd", "dsff"]');
+CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb)
+RETURNS VOID as $$
+DECLARE 
+ 
+begin
+  
+end
+$$ 
+LANGUAGE plpgsql;

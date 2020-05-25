@@ -11,22 +11,22 @@ function apply_patch_file(string $patch_fn) {
   $f = fopen($patch_fn, "r") or die("Unable to open file!");
   $patch = json_decode(fread($f,filesize($patch_fn)));
   fclose($f);
-  
+
   echo sprintf("form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id) . PHP_EOL;
 
   try {
     $db = dbconnect();
 
-    $sql = "SELECT nf_apply_patch(:form_id, :submission_id, :patch_jsn);";
+    $sql = "SELECT nf_apply_operation(:form_id, :submission_id, :patch_jsn);";
     $stmt = $db->prepare($sql);
     if (!$stmt) {
       echo "Error updating record:\n";
       print_r($stmt->errorInfo());
       die(sprintf("Error updating record form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id));
     }
-    $stmt->bindParam(':form_id',               $patch->form_id,       PDO::PARAM_INT);
-    $stmt->bindParam(':submission_id',         $patch->submission_id, PDO::PARAM_STR);
-    $stmt->bindParam(':patch_jsn', json_encode($patch->operation),    PDO::PARAM_STR);
+    $stmt->bindParam(':form_id',       $patch->form_id,       PDO::PARAM_INT);
+    $stmt->bindParam(':submission_id', $patch->submission_id, PDO::PARAM_STR);
+    $stmt->bindParam(':patch_jsn', json_encode($patch->action), PDO::PARAM_STR);
     if ( $stmt->execute()) {
       "Record updated successfully" . PHP_EOL;
     } else {
