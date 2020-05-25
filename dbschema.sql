@@ -200,6 +200,7 @@ $$
 LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
+
 CREATE OR REPLACE FUNCTION nf_get_lastpatchid(form_id int, submission_id int)
 returns int as $$
 declare 
@@ -211,6 +212,7 @@ begin
 END;
 $$ LANGUAGE plpgsql;
 
+--------------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb, dry_run bool default false)
 RETURNS VOID as $$
@@ -259,7 +261,25 @@ end
 $$ 
 LANGUAGE plpgsql;
 
+--------------------------------------------------------------------------------
+-- apply a patch and save timestap (to keep track of new changes)
+CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb, date timestamp, dry_run bool default false)
+RETURNS VOID as $$
+DECLARE
+  in_form_id int := patch->> 'form_id';
+begin
+  perform nf_apply_patch(patch, dry_run);
+  INSERT INTO nf_status (
+    form_id, updated
+  ) VALUES (
+     in_form_id, date
+  ) ON CONFLICT (form_id) DO UPDATE SET form_id = in_form_id, updated = date;
+end
+$$ 
+LANGUAGE plpgsql;
 
+
+--------------------------------------------------------------------------------
 
 create table if not exists nf_patches (
   form_id        integer
@@ -271,4 +291,22 @@ create table if not exists nf_patches (
   ,comment       text
   ,PRIMARY KEY (form_id, submission_id, id)
   ,FOREIGN KEY (form_id) REFERENCES forms(id)
-)
+);
+
+create table if not exists nf_status (
+  form_id   integer
+  ,updated timestamp
+  ,PRIMARY KEY (form_id)
+  ,FOREIGN KEY (form_id) REFERENCES forms(id)
+);
+
+create or replace view v_nf_status as
+select 
+  id as form_id
+  ,f.title
+  ,f.category
+  ,f.updated
+  ,nf_status.updated as last_patch_ts
+  ,(select count (*) from nf_patches np where np.form_id = f.id) as num_patches
+from forms f 
+left outer join nf_status on nf_status.form_id = f.id;

@@ -17,7 +17,7 @@ function apply_patch_file(string $patch_fn) {
   try {
     $db = dbconnect();
 
-    $sql = "SELECT nf_apply_patch(:patch_jsn, false);";
+    $sql = "SELECT nf_apply_patch(:patch_jsn, :date, false);";
     $stmt = $db->prepare($sql);
     if (!$stmt) {
       echo "Error updating record:\n";
@@ -25,6 +25,7 @@ function apply_patch_file(string $patch_fn) {
       die(sprintf("Error updating record form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id));
     }
     $stmt->bindParam(':patch_jsn', json_encode($patch), PDO::PARAM_STR);
+    $stmt->bindParam(':date', date(DATE_RFC3339), PDO::PARAM_STR);
     if ( $stmt->execute()) {
       "Record updated successfully" . PHP_EOL;
     } else {
