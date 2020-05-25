@@ -207,9 +207,51 @@ RETURNS VOID as $$
 DECLARE
   form_id int       := patch->> 'form_id';
   submission_id int := patch->> 'submission_id';
-  action jsonb      := patch-> 'action';
+  patch_id int      := patch->> 'id';
+  action jsonb      := patch->  'action';
+  date timestamp    := patch->> 'date';
+  author text       := patch->> 'author';
+  comment text      := patch->> 'comment';
 begin
+  -- test if patch applies
+  perform nf_apply_operation(form_id, submission_id, action, true);
+  -- insert to db
+  if not dry_run then
+    insert into patches (
+        form_id
+        ,submission_id
+        ,id
+        ,action
+        ,created_on
+        ,author
+        ,comment
+      )
+      values (
+        form_id
+        ,submission_id
+        ,patch_id
+        ,action
+        ,date
+        ,author
+        ,comment
+      );
+  end if;
+  -- apply patch
   perform nf_apply_operation(form_id, submission_id, action, dry_run);
 end
 $$ 
 LANGUAGE plpgsql;
+
+
+
+create table if not exists patches (
+  form_id        integer
+  ,submission_id integer
+  ,id            integer
+  ,action        jsonb
+  ,created_on    timestamp
+  ,author        text
+  ,comment       text
+  ,PRIMARY KEY (form_id, submission_id, id)
+  ,FOREIGN KEY (form_id, submission_id) REFERENCES submissions(form_id, id)
+)

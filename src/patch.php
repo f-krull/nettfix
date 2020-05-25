@@ -17,7 +17,7 @@ function apply_patch_file(string $patch_fn) {
   try {
     $db = dbconnect();
 
-    $sql = "SELECT nf_apply_patch(:patch_jsn, true);";
+    $sql = "SELECT nf_apply_patch(:patch_jsn, false);";
     $stmt = $db->prepare($sql);
     if (!$stmt) {
       echo "Error updating record:\n";
