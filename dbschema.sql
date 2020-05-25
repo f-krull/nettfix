@@ -200,6 +200,16 @@ $$
 LANGUAGE plpgsql;
 
 --------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION nf_get_lastpatchid(form_id int, submission_id int)
+returns int as $$
+declare 
+  in_form_id int := form_id;
+  in_submission_id int := submission_id;
+  patch_id int := (select max(id) from nf_patches p where p.form_id = in_form_id and p.submission_id = in_submission_id);
+begin
+  RETURN patch_id;
+END;
+$$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION nf_apply_patch(patch jsonb, dry_run bool default false)
@@ -212,12 +222,19 @@ DECLARE
   date timestamp    := patch->> 'date';
   author text       := patch->> 'author';
   comment text      := patch->> 'comment';
+  last_patch_id int;
 begin
+  -- test patch id
+  select coalesce(nf_get_lastpatchid(form_id, submission_id), -1) into last_patch_id;
+  if last_patch_id != (patch_id-1) then
+     RAISE EXCEPTION 'patch id "%" is not a successor of last patch id "%" (form=%,submission=%)', patch_id, last_patch_id, form_id, submission_id
+      USING HINT = 'Revise patch and specify the correct id';
+  end if;
   -- test if patch applies
   perform nf_apply_operation(form_id, submission_id, action, true);
   -- insert to db
   if not dry_run then
-    insert into patches (
+    insert into nf_patches (
         form_id
         ,submission_id
         ,id
