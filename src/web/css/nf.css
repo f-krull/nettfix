@@ -1,0 +1,126 @@
+/* .tabulator-col {
+  max-width:200px;
+} */
+
+:root {
+  --nfcol0: #000000;
+  --nfcol1: #ffffff;
+  --nfcol2: rgba(202, 17, 17, 0.514);
+  --nfcol3: rgb(214, 221, 255);
+  --nfcol33: #76D1FE;
+  --nfcol4: #FFBA8D;
+  --nfcol5: #FF0000;
+  --nfcol6: rgb(253, 238, 229);
+  --nfcol7: #FFE001;
+  --nfcol8: rgb(255, 243, 152);
+}
+
+body {
+  background-color: var(--nfcol1);
+}
+
+
+.nf-responsive-width {
+  width: 100%;
+  max-width: 330px;
+  padding: 15px;
+  margin: auto;
+}
+
+.breadcrumb {
+  background-color: var(--nqcol6);
+  border: 2px solid var(--nqcol2);
+  border-radius: 8px;
+}
+
+.nfconfigbox {
+  border: 2px solid var(--nqcol2);
+  border-radius: 8px;
+  background-color: var(--nqcol6);
+  padding: 16px;
+}
+.nftextarea {
+  background-color: var(--nqcol3);
+  font-family: monospace;
+  min-height: 310px;
+}
+
+.vertical-align-bottom {
+  display: flex;
+  align-items: flex-end;
+}
+
+footer {
+  opacity: 0.0;
+}
+
+/*Theme the Tabulator element*/
+/* #table {
+  font-size: 16px;
+  background-color: var(--nqcol6);
+  border: 2px solid var(--nqcol2);
+  border-radius: 8px;
+} */
+
+/*Theme the header*/
+#table .tabulator-header {
+  background-color:var(--nqcol2);
+  color: var(--nqcol0);
+}
+
+.tabulator .tabulator-header .tabulator-col.tabulator-sortable:hover {
+  cursor: pointer;
+  background-color: var(--nqcol2);
+}
+
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content .tabulator-col-title {
+  color: var(--nqcol1);
+}
+
+.tabulator .tabulator-header .tabulator-col {
+  display: inline-block;
+  position: relative;
+  box-sizing: border-box;
+  border-right: 2px solid var(--nqcol2);
+  background-color: var(--nqcol2);
+  text-align: left;
+  vertical-align: bottom;
+  overflow: hidden;
+}
+
+.tabulator-row.tabulator-group {
+  color: var(--nqcol2) !important;
+}
+
+.tabulator-row.tabulator-group span {
+  color: var(--nqcol0);
+}
+
+/*Color the table rows*/
+#table .tabulator-tableHolder .tabulator-table .tabulator-row{
+  color: var(--nqcol0);
+  background-color: var(--nqcol6);
+}
+
+/*Color even rows*/
+#table .tabulator-tableHolder .tabulator-table .tabulator-row:nth-child(even) {
+  background-color: var(--nqcol3);
+}
+
+
+.nf-frame {
+  font-size: 16px;
+  background-color: var(--nfcol6);
+  border: 4px solid var(--nfcol2);
+  border-radius: 4px;
+}
+
+#boxSubmission {
+  min-height: 200px;
+  font-size: 18px;
+}
+
+.btn-primary {
+  background-color: var(--nqcol2);
+}
+
