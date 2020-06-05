@@ -2,6 +2,7 @@
 
 Tool to update or delete submissions in Nettquik.
 
+Idea:
   * version control
   * user access control
   * relies on DB access to Nettquik with write permissions
@@ -20,7 +21,7 @@ Workflow
       * columns: form_id, submission_id, patch_json, date, comment, ...
     * patch_state
       * info about patch files that were applied
-      * columns form_id(forms with patch data), last_timestamp
+      * columns: form_id(forms with patch data), last_timestamp
     * v_patch_state: 
       * convenience table that shows patch_state for all forms
       * columns: form_id(all forms), last_timestamp, num_patches, (num removed?)
@@ -32,3 +33,7 @@ Workflow
     * apply patch
     * return ok
 
+Create patch:
+  * save to temporary file
+  * apply patch to db
+  * if ok move temp file to final folder/filename
