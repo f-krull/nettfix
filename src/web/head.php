@@ -6,7 +6,6 @@
   <link rel="stylesheet" href="./css/bootstrap.min.css">
   <link rel="stylesheet" href="./css/nf.css">
   <title><?= isset($PageTitle) ? $PageTitle : "Nettfix"?></title>
-  <!-- Additional tags here -->
   <?php if (function_exists('customPageHeader')){
     customPageHeader();
   }?>

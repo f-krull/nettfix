@@ -21,7 +21,6 @@ function apply_patch_file(string $patch_fn) {
     $stmt = $db->prepare($sql);
     if (!$stmt) {
       echo "Error updating record:\n";
-      print_r($stmt->errorInfo());
       die(sprintf("Error updating record form_id=%d submission_id=%d", $patch->form_id, $patch->submission_id));
     }
     $stmt->bindParam(':patch_jsn', json_encode($patch), PDO::PARAM_STR);

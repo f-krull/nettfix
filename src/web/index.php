@@ -14,30 +14,34 @@ include_once('head.php');
 include_once('header.php');
 ?>
 
-<div class="container mt-4">
-  <div id="table" class="nf-frame mb-4"></div>
+<div class="nf-responsive-width my-5">
+  <button id="btn-forms" class="btn btn-secondary btn-lg entry button btn-block mt-4">Show forms</button>
+  <div class="row mt-4">
+    <div class="col"><hr></div>
+    <div class="col-md-auto">or</div>
+    <div class="col"><hr></div>
+  </div>
+  <? if($message!=""): ?>
+  <div class="alert alert-warning"><?php if($message!="") { echo $message; } ?></div>
+  <? endif; ?>
+  <div class="entry">
+    <label for="form_id">Form ID:</label>
+    <input class="form-control" type="number" id="form_id" name="form_id" autocomplete="form_id" required="" autofocus="">
+    <label for="submission_id">Submission ID:</label>
+    <input class="form-control" type="number" id="submission_id" name="submission_id" required="" autofocus="">
+  </div>
+  <button id="btn-submit" class="btn btn-secondary btn-lg entry button btn-block mt-4">Show Submission</button>
 </div>
 
 <script>
-  async function doStuff() {
-    var table = new Tabulator("#table", {
-      columns: [
-        {field: "form_id", title: "Form ID", align:"center" , minWidth:100},
-        {field: "title", title: "Title"},
-        {field: "category", title: "Category"},
-        {field: "num_patches", title: "Num. patches"},
-        {field: "updated", title: "Last submission"},
-        {field: "last_patch_ts", title: "Last patch on"},
-      ],
-      ajaxURL: `get_forms_json.php`,
-      layout:"fitDataStretch",
-      height: "800px",
-      rowClick:function(e, row) {
-        window.open(`./form.php?formId=${row.getData().form_id}`,"_self");
-      },
-    });
+  document.querySelector("#btn-submit").onclick = function() { 
+    const form_id = document.querySelector("#form_id").value;
+    const submission_id = document.querySelector("#submission_id").value;
+    window.open(`./fix.php?formId=${form_id}&submissionId=${submission_id}`,"_self");
   }
-  doStuff();
+  document.querySelector("#btn-forms").onclick = function() { 
+    window.open(`./forms.php`,"_self");
+  }
 </script>
 
 <?php

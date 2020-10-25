@@ -15,3 +15,6 @@ src/web/%:
 	zcat 3rdparty/$*.gz > $@ 
 
 all: $(websrcs)
+
+.PHONY: init
+init:

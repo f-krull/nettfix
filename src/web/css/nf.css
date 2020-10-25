@@ -107,7 +107,6 @@ footer {
   background-color: var(--nqcol3);
 }
 
-
 .nf-frame {
   font-size: 16px;
   background-color: var(--nfcol6);
@@ -120,7 +119,11 @@ footer {
   font-size: 18px;
 }
 
-.btn-primary {
-  background-color: var(--nqcol2);
+#submission-edit-table {
+  border-collapse:separate; 
+  border-spacing: 16px 8px;
 }
 
+.nf-edit-changed {
+  background-color: yellow !important;
+}

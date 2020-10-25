@@ -8,3 +8,4 @@
     <? endif; ?>
   </ul>
 </nav>
+<hr class="mt-1 mb-2">
